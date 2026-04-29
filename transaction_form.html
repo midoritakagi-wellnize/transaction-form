@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>トランザクション入力</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #F5F4F0;
+    --surface: #FFFFFF;
+    --border: #E0DDD6;
+    --border-strong: #C5C0B5;
+    --text-primary: #1A1916;
+    --text-secondary: #6B6760;
+    --text-muted: #A09C96;
+    --accent: #2D5BE3;
+    --accent-light: #EEF2FC;
+    --accent-hover: #1E46C7;
+    --success: #1A7A4A;
+    --success-bg: #EDFAF3;
+    --warning: #B45309;
+    --warning-bg: #FEF3E2;
+    --tag-bg: #EEECEA;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 32px 16px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .container {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 28px;
+  }
+  .header-label {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .header-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+
+  /* Contract info bar */
+  .contract-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow);
+  }
+  .contract-icon {
+    width: 36px; height: 36px;
+    background: var(--accent-light);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .contract-info { flex: 1; }
+  .contract-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+  .contract-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    gap: 10px;
+    margin-top: 2px;
+  }
+  .tag {
+    background: var(--tag-bg);
+    color: var(--text-secondary);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .tag.payment { background: #EEF2FC; color: #2D5BE3; }
+  .tag.delivery { background: #F0FDF4; color: #166534; }
+
+  /* Step indicator */
+  .steps {
+    display: flex;
+    gap: 0;
+    margin-bottom: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .step {
+    flex: 1;
+    padding: 10px 8px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    border-right: 1px solid var(--border);
+    transition: all 0.2s;
+    cursor: default;
+  }
+  .step:last-child { border-right: none; }
+  .step.active {
+    background: var(--accent);
+    color: white;
+  }
+  .step.done {
+    background: var(--success-bg);
+    color: var(--success);
+  }
+  .step-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    display: block;
+    margin-bottom: 1px;
+    opacity: 0.7;
+  }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-header-icon {
+    font-size: 18px;
+  }
+  .card-header-text {}
+  .card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .card-subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 1px;
+  }
+  .card-body { padding: 20px; }
+
+  /* Status selector */
+  .status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .status-option {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg);
+  }
+  .status-option:hover {
+    border-color: var(--accent);
+    background: var(--accent-light);
+  }
+  .status-option.selected {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    box-shadow: 0 0 0 2px rgba(45,91,227,0.15);
+  }
+  .status-option input[type="radio"] { display: none; }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border-strong);
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .status-option.selected .status-dot { background: var(--accent); }
+  .status-label-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  .status-emoji { font-size: 16px; }
+
+  /* Form fields */
+  .fields { display: flex; flex-direction: column; gap: 16px; }
+  .field-group { display: flex; flex-direction: column; gap: 6px; }
+  .field-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .required {
+    color: #DC2626;
+    font-size: 11px;
+  }
+  .field-input {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 9px 12px;
+    font-size: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+    color: var(--text-primary);
+    background: var(--surface);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    width: 100%;
+    outline: none;
+  }
+  .field-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(45,91,227,0.1);
+  }
+  select.field-input { cursor: pointer; }
+  textarea.field-input { resize: vertical; min-height: 72px; line-height: 1.5; }
+
+  .field-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  /* Alert */
+  .alert {
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 12px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .alert.warning {
+    background: var(--warning-bg);
+    color: var(--warning);
+    border: 1px solid #FCD34D;
+  }
+  .alert.info {
+    background: var(--accent-light);
+    color: var(--accent);
+    border: 1px solid #BFCFF8;
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 4px;
+  }
+  .btn {
+    padding: 10px 22px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    letter-spacing: 0.01em;
+  }
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text-secondary);
+    border: 1.5px solid var(--border);
+  }
+  .btn-secondary:hover {
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 1px 3px rgba(45,91,227,0.3);
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:disabled {
+    background: var(--border-strong);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+  .btn-success {
+    background: var(--success);
+    color: white;
+    box-shadow: 0 1px 3px rgba(26,122,74,0.3);
+  }
+
+  /* Review screen */
+  .review-section {
+    margin-bottom: 16px;
+  }
+  .review-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  .review-rows { display: flex; flex-direction: column; gap: 0; }
+  .review-row {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 16px;
+  }
+  .review-row:last-child { border-bottom: none; }
+  .review-key {
+    font-size: 12px;
+    color: var(--text-secondary);
+    width: 140px;
+    flex-shrink: 0;
+    padding-top: 1px;
+  }
+  .review-value {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    flex: 1;
+  }
+  .review-value.accent { color: var(--accent); }
+
+  /* Success screen */
+  .success-screen {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .success-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+  .success-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--success);
+  }
+  .success-subtitle {
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
+  /* Hidden */
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-label">Transaction Form · Prototype</div>
+    <div class="header-title">トランザクション入力</div>
+  </div>
+
+  <!-- Contract info -->
+  <div class="contract-bar">
+    <div class="contract-icon">🏢</div>
+    <div class="contract-info">
+      <div class="contract-name">株式会社サンプル商事</div>
+      <div class="contract-meta">
+        <span class="tag payment">請求書後払い</span>
+        <span class="tag delivery">個別配送</span>
+        <span style="color:var(--text-muted)">契約ID: WNZ-2024-0082</span>
+        <span style="color:var(--text-muted)">単価（税抜）: ¥3,000</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div id="progress-bar" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-bottom:16px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);min-height:44px;"></div>
+
+  <!-- Step indicator -->
+  <div class="steps">
+    <div class="step active" id="step1"><span class="step-num">01</span>アクション選択</div>
+    <div class="step" id="step2"><span class="step-num">02</span>情報入力</div>
+    <div class="step" id="step3"><span class="step-num">03</span>確認</div>
+    <div class="step" id="step4"><span class="step-num">04</span>完了</div>
+  </div>
+
+  <!-- SCREEN 1: Status selection -->
+  <div id="screen-select">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-header-icon">⚡</span>
+        <div class="card-header-text">
+          <div class="card-title">アクション種別を選択</div>
+          <div class="card-subtitle">記録するアクションを選んでください</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="status-grid">
+          <label class="status-option" onclick="selectStatus(this, '受注決定')">
+            <input type="radio" name="status" value="受注決定">
+            <span class="status-emoji">📋</span>
+            <span class="status-dot"></span>
+            <span class="status-label-text">受注決定</span>
+          </label>
+          <label class="status-option" onclick="selectStatus(this, 'Shopify注文完了')">
+            <input type="radio" name="status" value="Shopify注文完了">
+            <span class="status-emoji">🛒</span>
+            <span class="status-dot"></span>
+            <span class="status-label-text">Shopify注文完了</span>
+          </label>
+          <label class="status-option" onclick="selectStatus(this, '発送指示完了')">
+            <input type="radio" name="status" value="発送指示完了">
+            <span class="status-emoji">📦</span>
+            <span class="status-dot"></span>
+            <span class="status-label-text">発送指示完了</span>
+          </label>
+          <label class="status-option" onclick="selectStatus(this, '請求書発行依頼')">
+            <input type="radio" name="status" value="請求書発行依頼">
+            <span class="status-emoji">📨</span>
+            <span class="status-dot"></span>
+            <span class="status-label-text">請求書発行依頼</span>
+          </label>
+          <label class="status-option" onclick="selectStatus(this, '請求書発行完了')">
+            <input type="radio" name="status" value="請求書発行完了">
+            <span class="status-emoji">🧾</span>
+            <span class="status-dot"></span>
+            <span class="status-label-text">請求書発行完了</span>
+          </label>
+          <label class="status-option" onclick="selectStatus(this, '入金確認')">
+            <input type="radio" name="status" value="入金確認">
+            <span class="status-emoji">💰</span>
+            <span class="status-dot"></span>
+            <span class="status-label-text">入金確認</span>
+          </label>
+          <label class="status-option" onclick="selectStatus(this, '入金消し込み完了')">
+            <input type="radio" name="status" value="入金消し込み完了">
+            <span class="status-emoji">✅</span>
+            <span class="status-dot"></span>
+            <span class="status-label-text">入金消し込み完了</span>
+          </label>
+          <label class="status-option" onclick="selectStatus(this, 'ステータス変更')">
+            <input type="radio" name="status" value="ステータス変更">
+            <span class="status-emoji">🔄</span>
+            <span class="status-dot"></span>
+            <span class="status-label-text">ステータス変更</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-to-form" onclick="goToForm()" disabled>次へ →</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: Dynamic form -->
+  <div id="screen-form" class="hidden">
+    <div class="card" id="form-card">
+      <div class="card-header">
+        <span class="card-header-icon" id="form-icon"></span>
+        <div class="card-header-text">
+          <div class="card-title" id="form-title"></div>
+          <div class="card-subtitle" id="form-subtitle"></div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="fields" id="form-fields"></div>
+        <div class="field-group" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+          <label class="field-label">担当者 <span class="required">*</span></label>
+          <input class="field-input" type="text" id="operator-input" placeholder="例：山田 花子">
+          <span class="field-hint">このアクションを記録する担当者名を入力してください</span>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goBack('screen-select', 1)">← 戻る</button>
+      <button class="btn btn-primary" onclick="goToReview()">確認画面へ →</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: Review -->
+  <div id="screen-review" class="hidden">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-header-icon">🔍</span>
+        <div class="card-header-text">
+          <div class="card-title">入力内容の確認</div>
+          <div class="card-subtitle">内容を確認してから保存してください</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="review-section">
+          <div class="review-section-title">契約情報</div>
+          <div class="review-rows">
+            <div class="review-row">
+              <span class="review-key">顧客名</span>
+              <span class="review-value">株式会社サンプル商事</span>
+            </div>
+            <div class="review-row">
+              <span class="review-key">支払い方法</span>
+              <span class="review-value">請求書後払い</span>
+            </div>
+            <div class="review-row">
+              <span class="review-key">配送方法</span>
+              <span class="review-value">個別配送</span>
+            </div>
+          </div>
+        </div>
+        <div class="review-section">
+          <div class="review-section-title">入力内容</div>
+          <div class="review-rows" id="review-rows"></div>
+        </div>
+        <div class="alert info" style="margin-top:12px">
+          💡 保存するとGoogle Sheetsのトランザクションシートに自動記録されます
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goBack('screen-form', 2)">← 修正する</button>
+      <button class="btn btn-success" onclick="saveToNotion()">✓ Google Sheetsに保存</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: Success -->
+  <div id="screen-success" class="hidden">
+    <div class="card">
+      <div class="card-body">
+        <div class="success-screen">
+          <div class="success-icon">✅</div>
+          <div class="success-title">保存完了</div>
+          <div class="success-subtitle" id="success-message"></div>
+          <div id="success-flow-label" style="margin-top:4px;font-size:12px;color:var(--accent);font-weight:600;"></div>
+          <div style="margin-top:24px;display:flex;gap:10px;justify-content:center;">
+            <button class="btn btn-primary" onclick="resetForm()">+ 次のアクションを記録</button>
+            <button class="btn btn-secondary" onclick="resetAll()">最初からやり直す</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ===== 設定 =====
+// GASデプロイ後にWebアプリURLをここに貼り付ける
+const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwnbCYxdBBCnohRiR67odjE8Q8E2rpaTMaEf6y_XCj9ZKQ8wsCOS5YMbVfZGUOwH1w/exec';
+
+// URLパラメータから案件情報を取得（Notionボタンから渡される）
+const urlParams = new URLSearchParams(window.location.search);
+const CASE_INFO = {
+  case_id:       urlParams.get('case_id')       || 'WNZ-2024-0082',  // 案件管理番号
+  customer_name: urlParams.get('customer_name') || '株式会社サンプル商事',
+  unit_price:    parseInt(urlParams.get('unit_price')) || 3000,
+  payment_method:urlParams.get('payment_method')|| '請求書後払い',
+  delivery_method:urlParams.get('delivery_method')|| '個別配送',
+};
+
+// 案件情報をUIに反映
+document.addEventListener('DOMContentLoaded', () => {
+  const nameEl = document.querySelector('.contract-name');
+  const metaEl = document.querySelector('.contract-meta');
+  if (nameEl) nameEl.textContent = CASE_INFO.customer_name;
+  if (metaEl) {
+    metaEl.innerHTML = `
+      <span class="tag payment">${CASE_INFO.payment_method}</span>
+      <span class="tag delivery">${CASE_INFO.delivery_method}</span>
+      <span style="color:var(--text-muted)">案件ID: ${CASE_INFO.case_id}</span>
+      <span style="color:var(--text-muted)">単価（税抜）: ¥${CASE_INFO.unit_price.toLocaleString()}</span>
+    `;
+  }
+});
+
+// ===== 状態管理 =====
+let selectedStatus = null;
+let formData = {};
+
+// 保存済みアクションと請求前発送フラグ
+const state = {
+  saved: new Set(),       // 保存済みアクション
+  preBillingFlag: null,   // null=未設定, true=請求前発送, false=請求後発送
+};
+
+// フラグありの順序（通常フロー）
+const ORDER_PRE = ['受注決定','Shopify注文完了','発送指示完了','請求書発行依頼','請求書発行完了','入金確認','入金消し込み完了'];
+// フラグなしの順序（請求後発送フロー）
+const ORDER_POST = ['受注決定','Shopify注文完了','請求書発行依頼','請求書発行完了','発送指示完了','入金確認','入金消し込み完了'];
+
+function getNextAllowed() {
+  if (!state.saved.has('受注決定')) return new Set(['受注決定', 'ステータス変更']);
+  const order = state.preBillingFlag ? ORDER_PRE : ORDER_POST;
+  const allowed = new Set(['ステータス変更']);
+  for (const action of order) {
+    if (!state.saved.has(action)) { allowed.add(action); break; }
+  }
+  return allowed;
+}
+
+function updateActionGrid() {
+  const allowed = getNextAllowed();
+  document.querySelectorAll('.status-option').forEach(opt => {
+    const val = opt.querySelector('input[type="radio"]').value;
+    const isAllowed = allowed.has(val);
+    opt.classList.toggle('disabled', !isAllowed);
+    opt.style.opacity = isAllowed ? '1' : '0.35';
+    opt.style.cursor = isAllowed ? 'pointer' : 'not-allowed';
+    opt.style.pointerEvents = isAllowed ? 'auto' : 'none';
+  });
+
+  // フラグ未設定の場合は受注決定のみ有効
+  if (state.preBillingFlag === null && state.saved.has('受注決定')) {
+    // 受注決定保存済みだがフラグ未設定は起こりえない（保存時に設定される）
+  }
+
+  // 進捗バッジを更新
+  renderProgress();
+}
+
+function renderProgress() {
+  const order = state.preBillingFlag === false ? ORDER_POST : ORDER_PRE;
+  const container = document.getElementById('progress-bar');
+  if (!container) return;
+  container.innerHTML = order.map((a, i) => {
+    const done = state.saved.has(a);
+    const isCurrent = !done && order.slice(0, i).every(x => state.saved.has(x));
+    const color = done ? 'var(--success)' : isCurrent ? 'var(--accent)' : 'var(--border-strong)';
+    const bg = done ? 'var(--success-bg)' : isCurrent ? 'var(--accent-light)' : 'var(--bg)';
+    return `<div style="display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;background:${bg};border:1px solid ${color};font-size:11px;color:${color};font-weight:600;white-space:nowrap;">
+      ${done ? '✓' : isCurrent ? '▶' : `${i+1}`} ${a}
+    </div>`;
+  }).join('<div style="color:var(--border-strong);font-size:10px;padding:0 2px;">→</div>');
+}
+
+const UNIT_PRICE = CASE_INFO.unit_price;
+const UNIT_PRICE_DISPLAY = `¥${CASE_INFO.unit_price.toLocaleString()}`;
+const ORDER_TOTAL = 100; // 受注総数（プロトタイプ固定値・本番はDB参照）
+const SHIPPING_TABLE = [
+  { min: 1,   max: 1,   method: 'ゆうパケット', price: 300 },
+  { min: 2,   max: 16,  method: '佐川急便',     price: 813 },
+  { min: 17,  max: 26,  method: '佐川急便',     price: 940 },
+  { min: 27,  max: 100, method: '佐川急便',     price: 1322 },
+  { min: 101, max: 200, method: '佐川急便',     price: 2644 },
+];
+
+function getShipping(qty) {
+  const q = parseInt(qty) || 0;
+  return SHIPPING_TABLE.find(r => q >= r.min && q <= r.max) || null;
+}
+
+const formConfigs = {
+  '受注決定': {
+    icon: '📋',
+    subtitle: '受注時の情報を入力してください',
+    fields: [
+      { id: 'order_count', label: '受注総数', type: 'number', required: true, placeholder: '例：100', calcTrigger: 'estimate' },
+      { id: 'unit_price_ref', label: '単価（税抜）', type: 'readonly', value: UNIT_PRICE_DISPLAY, hint: '案件管理DBより参照' },
+      { id: 'estimated_amount', label: '見込み金額（税抜）', type: 'calc', hint: '受注総数 × 単価（税抜）で自動計算' },
+      { id: 'pre_billing_flag', label: '請求前発送', type: 'checkbox', hint: 'ONの場合：発送→請求→入金の順。OFFの場合：請求→発送→入金の順' }
+    ]
+  },
+  'Shopify注文完了': {
+    icon: '🛒',
+    subtitle: 'Shopifyの注文情報を入力してください',
+    fields: [
+      { id: 'shopify_order_id', label: 'Shopify注文ID', type: 'text', required: true, placeholder: '例：#1234', hint: 'Shopify管理画面の注文番号' },
+      { id: 'shopify_qty', label: 'Shopify注文総数', type: 'number', required: true, placeholder: '例：100' }
+    ]
+  },
+  '発送指示完了': {
+    icon: '📦',
+    subtitle: '発送指示の情報を入力してください',
+    fields: [
+      { id: 'ship_qty', label: '発送個数', type: 'number', required: true, placeholder: '例：25', calcTrigger: 'ship' },
+      { id: 'ship_amount', label: '発送個数 × 単価（税抜）', type: 'calc', hint: '発送個数 × 単価で自動計算' },
+      { id: 'ship_remaining', label: '発送個数残高（未発送残数）', type: 'calc', hint: '受注総数 − 発送個数で自動計算' }
+    ]
+  },
+  '請求書発行依頼': {
+    icon: '📨',
+    subtitle: 'Slackへの請求書発行依頼内容を入力してください',
+    alert: { type: 'info', text: '💡 入力後、Slackの請求書発行依頼チャンネルに自動投稿されます' },
+    fields: [
+      { id: 'invoice_req_kit_qty', label: '請求個数（キット）', type: 'number', required: true, placeholder: '例：25', calcTrigger: 'invoice_req' },
+      { id: 'invoice_req_kit_amount', label: 'キット合計（税抜）', type: 'calc', hint: '請求個数 × 単価で自動計算' },
+      { id: 'invoice_req_ship_qty', label: '配送件数', type: 'number', required: true, placeholder: '例：25', calcTrigger: 'shipping' },
+      { id: 'invoice_req_ship_method', label: '配送方法（自動判定）', type: 'calc', hint: '配送件数から送料テーブルで自動判定' },
+      { id: 'invoice_req_ship_fee', label: '送料（税抜）', type: 'calc', hint: '配送件数から自動計算' },
+      { id: 'invoice_req_total', label: '総額（税抜）', type: 'calc', hint: 'キット合計 + 送料で自動計算' },
+      { id: 'invoice_req_date', label: '請求書発行日', type: 'date', required: true },
+      { id: 'invoice_req_payment_site', label: '支払いサイト', type: 'text', required: true, placeholder: '例：月末締め翌月末払い' },
+      { id: 'invoice_req_contact', label: '担当者連絡先', type: 'text', required: true, placeholder: '例：yamada@example.com' }
+    ]
+  },
+  '請求書発行完了': {
+    icon: '🧾',
+    subtitle: '請求書の発行情報を入力してください',
+    fields: [
+      { id: 'invoice_no', label: '請求書番号', type: 'text', required: true, placeholder: '例：INV-2024-082', hint: 'JOBCANより転記' },
+      { id: 'invoice_qty', label: '請求個数', type: 'number', required: true, placeholder: '例：25', hint: '発送個数と連動して自動入力', calcTrigger: 'invoice' },
+      { id: 'invoice_total', label: '請求合計金額（税抜）', type: 'calc', hint: '請求個数 × 単価（税抜）で自動計算' }
+    ]
+  },
+  '入金確認': {
+    icon: '💰',
+    subtitle: '入金確認の情報を入力してください',
+    fields: [
+      { id: 'payment_no', label: '入金番号', type: 'text', required: true, placeholder: '例：PAY-2024-082' },
+      { id: 'payment_amount', label: '入金金額', type: 'number', required: true, placeholder: '例：82500', calcTrigger: 'payment' },
+      { id: 'payment_remaining', label: '入金残高（未回収残高）', type: 'calc', hint: '請求合計 − 累計入金で自動計算（プロトタイプ：請求合計¥75,000で計算）' }
+    ]
+  },
+  '入金消し込み完了': {
+    icon: '✅',
+    subtitle: '入金確認の内容を引き継いで消し込みを完了します',
+    fields: [
+      { id: 'writeoff_payment_no', label: '入金番号', type: 'readonly', value: '（入金確認より引き継ぎ）' },
+      { id: 'writeoff_payment_amount', label: '入金金額', type: 'readonly', value: '（入金確認より引き継ぎ）' },
+      { id: 'writeoff_remaining', label: '入金残高', type: 'readonly', value: '（入金確認より引き継ぎ）' },
+      { id: 'writeoff_date', label: '消し込み完了日', type: 'date', required: true }
+    ]
+  },
+  'ステータス変更': {
+    icon: '🔄',
+    subtitle: 'ステータスの変更内容を記録してください',
+    fields: [
+      { id: 'new_status', label: '変更後ステータス', type: 'select', required: true,
+        options: ['配送完了', '検査受付済み', '結果通知済み', 'キャンセル', 'その他'] },
+      { id: 'changed_by', label: '変更担当者', type: 'text', required: true, placeholder: '例：山田 花子' },
+      { id: 'reason', label: '変更理由・備考', type: 'textarea', required: false, placeholder: '変更の背景や詳細を記載' }
+    ]
+  }
+};
+
+function calcEstimate(countVal) {
+  const count = parseInt(countVal) || 0;
+  const el = document.getElementById('f_estimated_amount');
+  if (el) el.value = count > 0 ? `¥${(count * UNIT_PRICE).toLocaleString()}` : '';
+}
+
+function calcShip(qtyVal) {
+  const qty = parseInt(qtyVal) || 0;
+  const elAmount = document.getElementById('f_ship_amount');
+  const elRemain = document.getElementById('f_ship_remaining');
+  if (elAmount) elAmount.value = qty > 0 ? `¥${(qty * UNIT_PRICE).toLocaleString()}` : '';
+  if (elRemain) elRemain.value = qty > 0 ? `${ORDER_TOTAL - qty}個` : '';
+}
+
+function calcInvoiceReq(field, val) {
+  const kitQty = parseInt(document.getElementById('f_invoice_req_kit_qty')?.value) || 0;
+  const shipQty = parseInt(document.getElementById('f_invoice_req_ship_qty')?.value) || 0;
+  const kitAmount = kitQty * UNIT_PRICE;
+  const shipping = getShipping(shipQty);
+  const shipFee = shipping ? shipping.price : 0;
+  const total = kitAmount + shipFee;
+
+  const elKitAmt = document.getElementById('f_invoice_req_kit_amount');
+  const elMethod = document.getElementById('f_invoice_req_ship_method');
+  const elFee = document.getElementById('f_invoice_req_ship_fee');
+  const elTotal = document.getElementById('f_invoice_req_total');
+
+  if (elKitAmt) elKitAmt.value = kitQty > 0 ? `¥${kitAmount.toLocaleString()}` : '';
+  if (elMethod) elMethod.value = shipping ? `${shipping.method}（${shipping.min}〜${shipping.max}個レンジ）` : '';
+  if (elFee) elFee.value = shipping ? `¥${shipFee.toLocaleString()}` : '';
+  if (elTotal) elTotal.value = (kitQty > 0 && shipQty > 0) ? `¥${total.toLocaleString()}` : '';
+}
+
+function calcInvoice(qtyVal) {
+  const qty = parseInt(qtyVal) || 0;
+  const el = document.getElementById('f_invoice_total');
+  if (el) el.value = qty > 0 ? `¥${(qty * UNIT_PRICE).toLocaleString()}` : '';
+}
+
+function calcPayment(amountVal) {
+  const INVOICE_TOTAL = 75000; // プロトタイプ固定値（本番はDB参照）
+  const paid = parseInt(amountVal) || 0;
+  const el = document.getElementById('f_payment_remaining');
+  if (el) el.value = paid > 0 ? `¥${(INVOICE_TOTAL - paid).toLocaleString()}` : '';
+}
+
+function selectStatus(el, status) {
+  const allowed = getNextAllowed();
+  if (!allowed.has(status)) return;
+  document.querySelectorAll('.status-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedStatus = status;
+  document.getElementById('btn-to-form').disabled = false;
+}
+
+function goToForm() {
+  const config = formConfigs[selectedStatus];
+  document.getElementById('form-icon').textContent = config.icon;
+  document.getElementById('form-title').textContent = selectedStatus;
+  document.getElementById('form-subtitle').textContent = config.subtitle;
+
+  let html = '';
+
+  if (config.alert) {
+    html += `<div class="alert ${config.alert.type}">${config.alert.text}</div>`;
+  }
+
+  config.fields.forEach(f => {
+    const req = f.required ? '<span class="required">*</span>' : '';
+    const hint = f.hint ? `<span class="field-hint">${f.hint}</span>` : '';
+
+    let input = '';
+    if (f.type === 'select') {
+      input = `<select class="field-input" id="f_${f.id}"><option value="">選択してください</option>${f.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
+    } else if (f.type === 'textarea') {
+      input = `<textarea class="field-input" id="f_${f.id}" placeholder="${f.placeholder || ''}"></textarea>`;
+    } else if (f.type === 'readonly') {
+      input = `<input class="field-input" type="text" id="f_${f.id}" value="${f.value || ''}" readonly style="background:var(--tag-bg);color:var(--text-secondary);cursor:default;">`;
+    } else if (f.type === 'calc') {
+      input = `<input class="field-input" type="text" id="f_${f.id}" readonly placeholder="自動計算されます" style="background:var(--accent-light);color:var(--accent);font-weight:600;cursor:default;">`;
+    } else if (f.type === 'checkbox') {
+      input = `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="f_${f.id}" style="width:16px;height:16px;cursor:pointer;">
+        <span style="font-size:13px;color:var(--text-primary);">請求前発送する</span>
+      </label>`;
+    } else {
+      const triggerMap = {
+        'estimate': 'calcEstimate(this.value)',
+        'ship': 'calcShip(this.value)',
+        'invoice_req': 'calcInvoiceReq("kit", this.value)',
+        'shipping': 'calcInvoiceReq("ship", this.value)',
+        'invoice': 'calcInvoice(this.value)',
+        'payment': 'calcPayment(this.value)',
+      };
+      const trigger = f.calcTrigger ? ` oninput="${triggerMap[f.calcTrigger]}"` : '';
+      input = `<input class="field-input" type="${f.type}" id="f_${f.id}" placeholder="${f.placeholder || ''}"${trigger}>`;
+    }
+
+    html += `<div class="field-group">
+      <label class="field-label">${f.label}${req}</label>
+      ${input}
+      ${hint}
+    </div>`;
+  });
+
+  document.getElementById('form-fields').innerHTML = html;
+  switchScreen('screen-form', 2);
+}
+
+function goToReview() {
+  const config = formConfigs[selectedStatus];
+  const rows = [];
+  let valid = true;
+
+  rows.push({ key: 'アクション種別', value: `${config.icon} ${selectedStatus}` });
+
+  config.fields.forEach(f => {
+    const el = document.getElementById(`f_${f.id}`);
+    let val = '';
+    if (f.type === 'checkbox') {
+      val = el && el.checked ? '✓ あり' : '─ なし';
+    } else {
+      val = el ? el.value.trim() : '';
+    }
+    if (f.required && !val && f.type !== 'readonly' && f.type !== 'calc' && f.type !== 'checkbox') {
+      el.style.borderColor = '#DC2626';
+      el.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.1)';
+      valid = false;
+    } else if (el && f.type !== 'readonly' && f.type !== 'calc' && f.type !== 'checkbox') {
+      el.style.borderColor = '';
+      el.style.boxShadow = '';
+    }
+    if (val) rows.push({ key: f.label, value: val });
+  });
+
+  if (!valid) {
+    return;
+  }
+
+  formData = rows;
+
+  const reviewHtml = rows.map(r =>
+    `<div class="review-row">
+      <span class="review-key">${r.key}</span>
+      <span class="review-value">${r.value}</span>
+    </div>`
+  ).join('');
+
+  document.getElementById('review-rows').innerHTML = reviewHtml;
+  switchScreen('screen-review', 3);
+}
+
+async function saveToNotion() {
+  // 担当者チェック
+  const operator = document.getElementById('operator-input')?.value.trim();
+  if (!operator) {
+    const el = document.getElementById('operator-input');
+    el.style.borderColor = '#DC2626';
+    el.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.1)';
+    el.focus();
+    return;
+  }
+
+  const btn = document.querySelector('#screen-review .btn-success');
+  btn.textContent = '保存中...';
+  btn.disabled = true;
+
+  // フォームデータをフラットなオブジェクトに変換
+  const config = formConfigs[selectedStatus];
+  const payload = {
+    // 共通フィールド
+    case_id:       CASE_INFO.case_id,
+    customer_name: CASE_INFO.customer_name,
+    action_type:   selectedStatus,
+    operator:      operator,
+  };
+
+  config.fields.forEach(f => {
+    const el = document.getElementById(`f_${f.id}`);
+    if (!el) return;
+    if (f.type === 'checkbox') {
+      payload[f.id] = el.checked ? '✓ あり' : '─ なし';
+    } else {
+      payload[f.id] = el.value.trim();
+    }
+  });
+
+  try {
+    const res = await fetch(GAS_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' }, // GASのCORS対応のため text/plain
+      body: JSON.stringify(payload),
+    });
+    const result = await res.json();
+
+    if (!result.success) throw new Error(result.error || '保存に失敗しました');
+
+    // 保存済みに追加
+    state.saved.add(selectedStatus);
+
+    // 受注決定保存時にフラグを記録
+    if (selectedStatus === '受注決定') {
+      const flagEl = document.getElementById('f_pre_billing_flag');
+      state.preBillingFlag = flagEl ? flagEl.checked : false;
+    }
+
+    const flagLabel = state.preBillingFlag === null ? '' :
+      state.preBillingFlag ? '（請求前発送フロー）' : '（請求後発送フロー）';
+    document.getElementById('success-message').textContent =
+      `「${selectedStatus}」をGoogle Sheetsに記録しました。`;
+    document.getElementById('success-flow-label').textContent = flagLabel;
+
+    switchScreen('screen-success', 4);
+    updateActionGrid();
+
+  } catch (err) {
+    btn.textContent = '✓ Google Sheetsに保存';
+    btn.disabled = false;
+    alert(`エラーが発生しました：${err.message}\n\nGASのエンドポイントURLを確認してください。`);
+  }
+}
+
+function switchScreen(show, stepNum) {
+  ['screen-select','screen-form','screen-review','screen-success'].forEach(id => {
+    document.getElementById(id).classList.add('hidden');
+  });
+  document.getElementById(show).classList.remove('hidden');
+
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById(`step${i}`);
+    el.className = 'step';
+    if (i < stepNum) el.classList.add('done');
+    else if (i === stepNum) el.classList.add('active');
+  }
+}
+
+function goBack(screen, stepNum) {
+  switchScreen(screen, stepNum);
+}
+
+function resetForm() {
+  selectedStatus = null;
+  formData = {};
+  document.querySelectorAll('.status-option').forEach(o => o.classList.remove('selected'));
+  document.getElementById('btn-to-form').disabled = true;
+  const btn = document.querySelector('#screen-review .btn-success');
+  if (btn) { btn.textContent = '✓ Google Sheetsに保存'; btn.disabled = false; }
+  const op = document.getElementById('operator-input');
+  if (op) { op.style.borderColor = ''; op.style.boxShadow = ''; }
+  updateActionGrid();
+  switchScreen('screen-select', 1);
+}
+
+function resetAll() {
+  state.saved.clear();
+  state.preBillingFlag = null;
+  resetForm();
+}
+
+// Set today's date as default for date fields
+document.addEventListener('change', function(e) {
+  if (e.target.type === 'date' && !e.target.value) {
+    e.target.value = new Date().toISOString().split('T')[0];
+  }
+});
+
+// 初期化
+updateActionGrid();
+</script>
+</body>
+</html>
