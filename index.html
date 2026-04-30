@@ -584,31 +584,50 @@
 <script>
 // ===== 設定 =====
 // GASデプロイ後にWebアプリURLをここに貼り付ける
-const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwnbCYxdBBCnohRiR67odjE8Q8E2rpaTMaEf6y_XCj9ZKQ8wsCOS5YMbVfZGUOwH1w/exec';
+const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxJJzjL9xyKGRjoCSA4rDfNe0KZuX5MZoWDTUFbrAI-Z4nDKuOL_RGJT5BD7EnNYslX/exec';
 
-// URLパラメータから案件情報を取得（Notionボタンから渡される）
+// URLパラメータから案件IDを取得
 const urlParams = new URLSearchParams(window.location.search);
-const CASE_INFO = {
-  case_id:       urlParams.get('case_id')       || 'WNZ-2024-0082',  // 案件管理番号
-  customer_name: urlParams.get('customer_name') || '株式会社サンプル商事',
-  unit_price:    parseInt(urlParams.get('unit_price')) || 3000,
-  payment_method:urlParams.get('payment_method')|| '請求書後払い',
-  delivery_method:urlParams.get('delivery_method')|| '個別配送',
+const CASE_ID_PARAM = urlParams.get('case_id') || 'WNZ-2024-0082';
+
+// 案件情報（GASのNotion API経由で取得）
+let CASE_INFO = {
+  case_id:        CASE_ID_PARAM,
+  customer_name:  '読み込み中...',
+  unit_price:     3000,
+  payment_method: '—',
+  delivery_method:'—',
 };
 
-// 案件情報をUIに反映
-document.addEventListener('DOMContentLoaded', () => {
-  const nameEl = document.querySelector('.contract-name');
-  const metaEl = document.querySelector('.contract-meta');
-  if (nameEl) nameEl.textContent = CASE_INFO.customer_name;
-  if (metaEl) {
-    metaEl.innerHTML = `
-      <span class="tag payment">${CASE_INFO.payment_method}</span>
-      <span class="tag delivery">${CASE_INFO.delivery_method}</span>
-      <span style="color:var(--text-muted)">案件ID: ${CASE_INFO.case_id}</span>
-      <span style="color:var(--text-muted)">単価（税抜）: ¥${CASE_INFO.unit_price.toLocaleString()}</span>
-    `;
+// GASからNotion案件情報を取得してUIに反映
+async function loadCaseInfo() {
+  try {
+    const res = await fetch(`${GAS_ENDPOINT}?case_id=${encodeURIComponent(CASE_ID_PARAM)}`);
+    const result = await res.json();
+    if (result.success && result.data) {
+      CASE_INFO = result.data;
+      CASE_INFO.unit_price = parseInt(String(CASE_INFO.unit_price).replace(/[¥,]/g, '')) || 3000;
+    }
+  } catch (e) {
+    console.warn('Notion情報の取得に失敗しました。デフォルト値を使用します。', e);
+  } finally {
+    // UIに反映
+    const nameEl = document.querySelector('.contract-name');
+    const metaEl = document.querySelector('.contract-meta');
+    if (nameEl) nameEl.textContent = CASE_INFO.customer_name;
+    if (metaEl) {
+      metaEl.innerHTML = `
+        <span class="tag payment">${CASE_INFO.payment_method}</span>
+        <span class="tag delivery">${CASE_INFO.delivery_method}</span>
+        <span style="color:var(--text-muted)">案件ID: ${CASE_INFO.case_id}</span>
+        <span style="color:var(--text-muted)">単価（税抜）: ¥${Number(CASE_INFO.unit_price).toLocaleString()}</span>
+      `;
+    }
   }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadCaseInfo();
 });
 
 // ===== 状態管理 =====
