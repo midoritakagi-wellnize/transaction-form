@@ -584,7 +584,7 @@
 <script>
 // ===== 設定 =====
 // GASデプロイ後にWebアプリURLをここに貼り付ける
-const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzCGRe72MFhRJ4_ZUUtb2SS7uVIB5-WOlOaVnn4BO4-8HnOJ_TTtduLTTxyXUCc09JY/exec';
+const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbymJyS6_2WcidP4RcfXe3iquGGUl-ytcqyFDmCPOey-3OGtUwK6gVHkMW0YViM2HKlc/exec';
 
 // URLパラメータから案件IDを取得
 const urlParams = new URLSearchParams(window.location.search);
@@ -599,7 +599,7 @@ let CASE_INFO = {
   delivery_method:'—',
 };
 
-// GASからNotion案件情報を取得してUIに反映
+// GASからNotion案件情報と保存済みアクションを取得してUIに反映
 async function loadCaseInfo() {
   try {
     const res = await fetch(`${GAS_ENDPOINT}?case_id=${encodeURIComponent(CASE_ID_PARAM)}`);
@@ -607,9 +607,18 @@ async function loadCaseInfo() {
     if (result.success && result.data) {
       CASE_INFO = result.data;
       CASE_INFO.unit_price = parseInt(String(CASE_INFO.unit_price).replace(/[¥,]/g, '')) || 3000;
+
+      // 保存済みアクションをstateに復元
+      if (result.savedActions && result.savedActions.savedActions) {
+        const sa = result.savedActions;
+        sa.savedActions.forEach(a => state.saved.add(a));
+        state.preBillingFlag = sa.preBillingFlag;
+        state.orderTotal     = sa.orderTotal || 0;
+        state.invoiceTotal   = sa.invoiceTotal || 0;
+      }
     }
   } catch (e) {
-    console.warn('Notion情報の取得に失敗しました。デフォルト値を使用します。', e);
+    console.warn('情報の取得に失敗しました。デフォルト値を使用します。', e);
   } finally {
     // UNIT_PRICEを更新
     UNIT_PRICE = CASE_INFO.unit_price;
@@ -627,6 +636,9 @@ async function loadCaseInfo() {
         <span style="color:var(--text-muted)">単価（税抜）: ¥${Number(CASE_INFO.unit_price).toLocaleString()}</span>
       `;
     }
+
+    // 保存済みアクションを反映してグリッドを更新
+    updateActionGrid();
   }
 }
 
