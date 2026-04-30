@@ -968,6 +968,7 @@ async function saveToNotion() {
     // 共通フィールド
     case_id:       CASE_INFO.case_id,
     customer_name: CASE_INFO.customer_name,
+    unit_price:    UNIT_PRICE,
     action_type:   selectedStatus,
     operator:      operator,
   };
@@ -978,6 +979,7 @@ async function saveToNotion() {
     if (f.type === 'checkbox') {
       payload[f.id] = el.checked ? '✓ あり' : '─ なし';
     } else {
+      // calcフィールド（自動計算値）も含める
       payload[f.id] = el.value.trim();
     }
   });
