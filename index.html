@@ -808,36 +808,40 @@ const formConfigs = {
 };
 
 function calcEstimate(countVal) {
+  const unitPrice = UNIT_PRICE || CASE_INFO.unit_price || 3000;
   const count = parseInt(countVal) || 0;
   const el = document.getElementById('f_estimated_amount');
-  if (el) el.value = count > 0 ? `¥${(count * UNIT_PRICE).toLocaleString()}` : '';
+  if (el) el.value = count > 0 ? `¥${(count * unitPrice).toLocaleString()}` : '';
 }
 
 function calcShip(qtyVal) {
+  const unitPrice = UNIT_PRICE || CASE_INFO.unit_price || 3000;
   const qty = parseInt(qtyVal) || 0;
   const elAmount = document.getElementById('f_ship_amount');
   const elRemain = document.getElementById('f_ship_remaining');
-  if (elAmount) elAmount.value = qty > 0 ? `¥${(qty * UNIT_PRICE).toLocaleString()}` : '';
+  if (elAmount) elAmount.value = qty > 0 ? `¥${(qty * unitPrice).toLocaleString()}` : '';
   if (elRemain) elRemain.value = qty > 0 ? `${state.orderTotal - qty}個` : '';
 }
 
 function calcInvoiceReq(field, val) {
-  const kitQty = parseInt(document.getElementById('f_invoice_req_kit_qty')?.value) || 0;
+  // UNIT_PRICEが0の場合はCASE_INFOから直接参照
+  const unitPrice = UNIT_PRICE || CASE_INFO.unit_price || 3000;
+  const kitQty  = parseInt(document.getElementById('f_invoice_req_kit_qty')?.value) || 0;
   const shipQty = parseInt(document.getElementById('f_invoice_req_ship_qty')?.value) || 0;
-  const kitAmount = kitQty * UNIT_PRICE;
-  const shipping = getShipping(shipQty);
-  const shipFee = shipping ? shipping.price : 0;
-  const total = kitAmount + shipFee;
+  const kitAmount = kitQty * unitPrice;
+  const shipping  = getShipping(shipQty);
+  const shipFee   = shipping ? shipping.price : 0;
+  const total     = kitAmount + shipFee;
 
   const elKitAmt = document.getElementById('f_invoice_req_kit_amount');
   const elMethod = document.getElementById('f_invoice_req_ship_method');
-  const elFee = document.getElementById('f_invoice_req_ship_fee');
-  const elTotal = document.getElementById('f_invoice_req_total');
+  const elFee    = document.getElementById('f_invoice_req_ship_fee');
+  const elTotal  = document.getElementById('f_invoice_req_total');
 
   if (elKitAmt) elKitAmt.value = kitQty > 0 ? `¥${kitAmount.toLocaleString()}` : '';
   if (elMethod) elMethod.value = shipping ? `${shipping.method}（${shipping.min}〜${shipping.max}個レンジ）` : '';
-  if (elFee) elFee.value = shipping ? `¥${shipFee.toLocaleString()}` : '';
-  if (elTotal) elTotal.value = (kitQty > 0 && shipQty > 0) ? `¥${total.toLocaleString()}` : '';
+  if (elFee)    elFee.value    = shipping ? `¥${shipFee.toLocaleString()}` : '';
+  if (elTotal)  elTotal.value  = (kitQty > 0 && shipQty > 0) ? `¥${total.toLocaleString()}` : '';
 }
 
 function calcInvoice(qtyVal) {
