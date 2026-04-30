@@ -611,6 +611,10 @@ async function loadCaseInfo() {
   } catch (e) {
     console.warn('Notion情報の取得に失敗しました。デフォルト値を使用します。', e);
   } finally {
+    // UNIT_PRICEを更新
+    UNIT_PRICE = CASE_INFO.unit_price;
+    UNIT_PRICE_DISPLAY = `¥${Number(CASE_INFO.unit_price).toLocaleString()}`;
+
     // UIに反映
     const nameEl = document.querySelector('.contract-name');
     const metaEl = document.querySelector('.contract-meta');
@@ -636,8 +640,10 @@ let formData = {};
 
 // 保存済みアクションと請求前発送フラグ
 const state = {
-  saved: new Set(),       // 保存済みアクション
-  preBillingFlag: null,   // null=未設定, true=請求前発送, false=請求後発送
+  saved: new Set(),        // 保存済みアクション
+  preBillingFlag: null,    // null=未設定, true=請求前発送, false=請求後発送
+  orderTotal: 0,           // 受注決定時の受注総数
+  invoiceTotal: 0,         // 請求書発行完了時の請求合計金額
 };
 
 // フラグありの順序（通常フロー）
@@ -690,9 +696,8 @@ function renderProgress() {
   }).join('<div style="color:var(--border-strong);font-size:10px;padding:0 2px;">→</div>');
 }
 
-const UNIT_PRICE = CASE_INFO.unit_price;
-const UNIT_PRICE_DISPLAY = `¥${CASE_INFO.unit_price.toLocaleString()}`;
-const ORDER_TOTAL = 100; // 受注総数（プロトタイプ固定値・本番はDB参照）
+let UNIT_PRICE = 3000; // 初期値（loadCaseInfo完了後に上書き）
+let UNIT_PRICE_DISPLAY = '¥3,000';
 const SHIPPING_TABLE = [
   { min: 1,   max: 1,   method: 'ゆうパケット', price: 300 },
   { min: 2,   max: 16,  method: '佐川急便',     price: 813 },
@@ -801,7 +806,7 @@ function calcShip(qtyVal) {
   const elAmount = document.getElementById('f_ship_amount');
   const elRemain = document.getElementById('f_ship_remaining');
   if (elAmount) elAmount.value = qty > 0 ? `¥${(qty * UNIT_PRICE).toLocaleString()}` : '';
-  if (elRemain) elRemain.value = qty > 0 ? `${ORDER_TOTAL - qty}個` : '';
+  if (elRemain) elRemain.value = qty > 0 ? `${state.orderTotal - qty}個` : '';
 }
 
 function calcInvoiceReq(field, val) {
@@ -830,10 +835,9 @@ function calcInvoice(qtyVal) {
 }
 
 function calcPayment(amountVal) {
-  const INVOICE_TOTAL = 75000; // プロトタイプ固定値（本番はDB参照）
   const paid = parseInt(amountVal) || 0;
   const el = document.getElementById('f_payment_remaining');
-  if (el) el.value = paid > 0 ? `¥${(INVOICE_TOTAL - paid).toLocaleString()}` : '';
+  if (el) el.value = paid > 0 ? `¥${(state.invoiceTotal - paid).toLocaleString()}` : '';
 }
 
 function selectStatus(el, status) {
@@ -867,7 +871,8 @@ function goToForm() {
     } else if (f.type === 'textarea') {
       input = `<textarea class="field-input" id="f_${f.id}" placeholder="${f.placeholder || ''}"></textarea>`;
     } else if (f.type === 'readonly') {
-      input = `<input class="field-input" type="text" id="f_${f.id}" value="${f.value || ''}" readonly style="background:var(--tag-bg);color:var(--text-secondary);cursor:default;">`;
+      const displayVal = f.id === 'unit_price_ref' ? UNIT_PRICE_DISPLAY : (f.value || '');
+      input = `<input class="field-input" type="text" id="f_${f.id}" value="${displayVal}" readonly style="background:var(--tag-bg);color:var(--text-secondary);cursor:default;">`;
     } else if (f.type === 'calc') {
       input = `<input class="field-input" type="text" id="f_${f.id}" readonly placeholder="自動計算されます" style="background:var(--accent-light);color:var(--accent);font-weight:600;cursor:default;">`;
     } else if (f.type === 'checkbox') {
@@ -990,10 +995,17 @@ async function saveToNotion() {
     // 保存済みに追加
     state.saved.add(selectedStatus);
 
-    // 受注決定保存時にフラグを記録
+    // 受注決定保存時にフラグと受注総数を記録
     if (selectedStatus === '受注決定') {
       const flagEl = document.getElementById('f_pre_billing_flag');
       state.preBillingFlag = flagEl ? flagEl.checked : false;
+      state.orderTotal = parseInt(document.getElementById('f_order_count')?.value) || 0;
+    }
+
+    // 請求書発行完了保存時に請求合計を記録
+    if (selectedStatus === '請求書発行完了') {
+      const totalStr = document.getElementById('f_invoice_total')?.value || '';
+      state.invoiceTotal = parseInt(totalStr.replace(/[¥,]/g, '')) || 0;
     }
 
     const flagLabel = state.preBillingFlag === null ? '' :
