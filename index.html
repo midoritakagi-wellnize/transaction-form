@@ -1048,6 +1048,42 @@ async function saveToNotion() {
   }
 }
 
+function getNextAllowed() {
+  // 受注決定が未実行なら受注決定とステータス変更のみ
+  if (!state.saved.has('受注決定')) return new Set(['受注決定', 'ステータス変更']);
+  // 受注決定済みなら全アクションが選択可能
+  const order = state.preBillingFlag ? ORDER_PRE : ORDER_POST;
+  return new Set([...order, 'ステータス変更']);
+}
+
+function updateActionGrid() {
+  const allowed = getNextAllowed();
+  document.querySelectorAll('.status-option').forEach(opt => {
+    const val = opt.querySelector('input[type="radio"]').value;
+    const isAllowed = allowed.has(val);
+    opt.classList.toggle('disabled', !isAllowed);
+    opt.style.opacity = isAllowed ? '1' : '0.35';
+    opt.style.cursor = isAllowed ? 'pointer' : 'not-allowed';
+    opt.style.pointerEvents = isAllowed ? 'auto' : 'none';
+  });
+  renderProgress();
+}
+
+function renderProgress() {
+  const order = state.preBillingFlag === false ? ORDER_POST : ORDER_PRE;
+  const container = document.getElementById('progress-bar');
+  if (!container) return;
+  container.innerHTML = order.map((a, i) => {
+    const count = state.actionCounts[a] || 0;
+    const done = count > 0;
+    const isCurrent = !done && order.slice(0, i).every(x => (state.actionCounts[x] || 0) > 0);
+    const color = done ? 'var(--success)' : isCurrent ? 'var(--accent)' : 'var(--border-strong)';
+    const bg    = done ? 'var(--success-bg)' : isCurrent ? 'var(--accent-light)' : 'var(--bg)';
+    const label = done ? `✓ ${a}${count > 1 ? ` ×${count}` : ''}` : isCurrent ? `▶ ${a}` : `${i+1} ${a}`;
+    return `<div style="display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;background:${bg};border:1px solid ${color};font-size:11px;color:${color};font-weight:600;white-space:nowrap;">${label}</div>`;
+  }).join('<div style="color:var(--border-strong);font-size:10px;padding:0 2px;">→</div>');
+}
+
 function switchScreen(show, stepNum) {
   ['screen-select','screen-form','screen-review','screen-success'].forEach(id => {
     document.getElementById(id).classList.add('hidden');
