@@ -652,25 +652,9 @@ function getNextAllowed() {
   // 受注決定が未実行なら受注決定とステータス変更のみ
   if (!state.saved.has('受注決定')) return new Set(['受注決定', 'ステータス変更']);
 
+  // 受注決定済みなら全アクションが選択可能
   const order = state.preBillingFlag ? ORDER_PRE : ORDER_POST;
-  const allowed = new Set(['ステータス変更']);
-
-  // 全アクション何度でも追加可能
-  // ただし「前のアクションが1回以上実行済み」であることが条件
-  order.forEach((action, i) => {
-    if (i === 0) {
-      // 受注決定は常に追加可能（修正のため）
-      allowed.add(action);
-    } else {
-      // 前のアクションが1回以上実行済みなら選択可能
-      const prev = order[i - 1];
-      if (state.saved.has(prev) || state.saved.has(action)) {
-        allowed.add(action);
-      }
-    }
-  });
-
-  return allowed;
+  return new Set([...order, 'ステータス変更']);
 }
 
 function updateActionGrid() {
